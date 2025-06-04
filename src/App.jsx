@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
@@ -6,25 +7,36 @@ export default function App() {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    async function fetchData() {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      const data = querySnapshot.docs.map(doc => doc.data());
-      setProducts(data);
-    }
+    const loadProducts = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "products"));
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setProducts(items);
+      } catch (err) {
+        console.error("Failed to load products:", err);
+      }
+    };
 
-    fetchData();
+    loadProducts();
   }, []);
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>🦋 Butterfly & Flower Store</h1>
-      <ul>
-        {products.map((item, index) => (
-          <li key={index}>
-            <strong>{item.name}</strong> – {item.price} IQD
-          </li>
-        ))}
-      </ul>
+    <div style={{ padding: "40px" }}>
+      <h1>Hello Butterfly 🦋</h1>
+      <p>If you're seeing this, it's working!</p>
+
+      <h2>🌸 Products from Firestore:</h2>
+      {products.length === 0 ? (
+        <p>No products found.</p>
+      ) : (
+        <ul>
+          {products.map(product => (
+            <li key={product.id}>
+              <strong>{product.name}</strong> — {product.price} IQD
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
