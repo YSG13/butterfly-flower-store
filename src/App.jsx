@@ -5,10 +5,14 @@ import {
   collection,
   getDocs,
   addDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import {
   getAuth,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
@@ -33,7 +37,10 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [lang, setLang] = useState("en");
-  const [newProduct, setNewProduct] = useState({ name: "", price: "", type: "" });
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [sisterProducts, setSisterProducts] = useState([]);
+  const [sisterName, setSisterName] = useState("");
+  const [sisterImage, setSisterImage] = useState("");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -41,7 +48,15 @@ export default function App() {
       const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setProducts(items);
     };
+
+    const fetchSisterProducts = async () => {
+      const snapshot = await getDocs(collection(db, "sister-products"));
+      const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setSisterProducts(items);
+    };
+
     fetchProducts();
+    fetchSisterProducts();
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -49,15 +64,30 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const addToCart = (item) => {
-    setCart([...cart, item]);
-  };
+  const addToCart = (item) => setCart([...cart, item]);
 
   const login = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       alert("Login failed: " + error.message);
+    }
+  };
+
+  const signup = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      alert("Sign-up failed: " + error.message);
+    }
+  };
+
+  const resetPassword = async () => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset email sent");
+    } catch (error) {
+      alert("Reset failed: " + error.message);
     }
   };
 
@@ -77,11 +107,18 @@ export default function App() {
     setCart([]);
   };
 
-  const handleAddProduct = async () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.type) return;
-    await addDoc(collection(db, "products"), newProduct);
-    setNewProduct({ name: "", price: "", type: "" });
-    alert("Product added.");
+  const handleAddSisterProduct = async (e) => {
+    e.preventDefault();
+    if (!sisterName || !sisterImage) return;
+    await addDoc(collection(db, "sister-products"), {
+      name: sisterName,
+      image: sisterImage,
+    });
+    setSisterName("");
+    setSisterImage("");
+    const snapshot = await getDocs(collection(db, "sister-products"));
+    const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    setSisterProducts(items);
   };
 
   const t = (en, ar, ku) => (lang === "ar" ? ar : lang === "ku" ? ku : en);
@@ -89,7 +126,7 @@ export default function App() {
   if (!user)
     return (
       <div style={{ padding: 20 }}>
-        <h1>{t("Login", "تسجيل الدخول", "چوونەژوورەوە")}</h1>
+        <h1>{isSignUp ? t("Sign Up", "انشاء حساب", "خۆتومارکردن") : t("Login", "تسجيل الدخول", "چوونەژوورەوە")}</h1>
         <input
           type="email"
           placeholder={t("Email", "البريد الالكتروني", "ئیمەیڵ")}
@@ -104,7 +141,12 @@ export default function App() {
           onChange={(e) => setPassword(e.target.value)}
         />
         <br />
-        <button onClick={login}>{t("Login", "دخول", "چوونەژوورەوە")}</button>
+        <button onClick={isSignUp ? signup : login}>{isSignUp ? t("Sign Up", "انشاء", "تومارکردن") : t("Login", "دخول", "چوونەژوورەوە")}</button>
+        <button onClick={resetPassword}>{t("Forgot Password", "نسيت كلمة السر؟", "وشەی نهێنیت لەبیرچوو؟")}</button>
+        <br />
+        <button onClick={() => setIsSignUp(!isSignUp)}>
+          {isSignUp ? t("Have an account? Login", "لديك حساب؟ دخول", "هەژمارت هەیە؟ چوونەژوورەوە") : t("Don't have an account? Sign Up", "ليس لديك حساب؟ انشاء", "هەژمارت نییە؟ تومارکردن")}
+        </button>
         <br />
         <button onClick={() => setLang("en")}>English</button>
         <button onClick={() => setLang("ar")}>العربية</button>
@@ -112,73 +154,64 @@ export default function App() {
       </div>
     );
 
-  const isSister = user.email === "yaro.talabani@gmail.com";
-
   return (
-    <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1 style={{ fontSize: 32 }}>Wings and Petals</h1>
-      <p>Welcome, {user.email}</p>
-      <button onClick={logout}>Logout</button>
+    <div style={{ padding: 20 }}>
+      <h1>{t("Welcome", "أهلاً", "بەخێربێیت")}, {user.email}</h1>
+      <button onClick={logout}>{t("Logout", "تسجيل الخروج", "دەرچوون")}</button>
 
-      {isSister && (
-        <div style={{ marginTop: 40, background: "#ffe0f0", padding: 20, borderRadius: 10 }}>
-          <h2>Sister's Collection - Add Product</h2>
-          <input
-            type="text"
-            placeholder="Name"
-            value={newProduct.name}
-            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-          />
-          <input
-            type="number"
-            placeholder="Price"
-            value={newProduct.price}
-            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-          />
-          <select
-            value={newProduct.type}
-            onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value })}
-          >
-            <option value="">Select Type</option>
-            <option value="resin">With Resin</option>
-            <option value="no-resin">Without Resin</option>
-          </select>
-          <button onClick={handleAddProduct}>Add Product</button>
-        </div>
-      )}
-
-      <h2>Products</h2>
-
-      <div style={{ marginBottom: 30 }}>
-        <h3>With Resin</h3>
-        {products.filter(p => p.type === "resin").map((p) => (
-          <div key={p.id} style={{ background: "#f3f3f3", margin: 10, padding: 10, borderRadius: 10 }}>
-            <strong>{p.name}</strong><br />
-            Price: {p.price}<br />
-            Type: {p.type}<br />
-            <button onClick={() => addToCart(p)}>Add to Cart</button>
-          </div>
+      <h2>{t("With Resin", "بداخل الريزن", "لەگەڵ رەیزن")}</h2>
+      <ul>
+        {products.filter(p => p.category === "resin").map((p) => (
+          <li key={p.id}>{p.name} - {p.price} <button onClick={() => addToCart(p)}>{t("Add", "أضف", "زێدەبکە")}</button></li>
         ))}
+      </ul>
 
-        <h3>Without Resin</h3>
-        {products.filter(p => p.type === "no-resin").map((p) => (
-          <div key={p.id} style={{ background: "#e6f9ff", margin: 10, padding: 10, borderRadius: 10 }}>
-            <strong>{p.name}</strong><br />
-            Price: {p.price}<br />
-            Type: {p.type}<br />
-            <button onClick={() => addToCart(p)}>Add to Cart</button>
-          </div>
+      <h2>{t("Without Resin", "بدون الريزن", "بێ رەیزن")}</h2>
+      <ul>
+        {products.filter(p => p.category === "no-resin").map((p) => (
+          <li key={p.id}>{p.name} - {p.price} <button onClick={() => addToCart(p)}>{t("Add", "أضف", "زێدەبکە")}</button></li>
         ))}
-      </div>
+      </ul>
 
-      <h2>Your Cart</h2>
+      <h2>{t("Cart", "السلة", "سەبەتە")}</h2>
       <ul>
         {cart.map((p, i) => (
           <li key={i}>{p.name} - {p.price}</li>
         ))}
       </ul>
 
-      <button onClick={checkout}>Checkout</button>
+      <button onClick={checkout}>{t("Checkout", "ادفع", "پارەدان")}</button>
+
+      {user.email === "yaro.talabani@gmail.com" && (
+        <div className="sisters-collection">
+          <h2>Sister’s Collection (Private)</h2>
+          <form onSubmit={handleAddSisterProduct}>
+            <input
+              type="text"
+              placeholder="Product Name"
+              value={sisterName}
+              onChange={(e) => setSisterName(e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Image URL"
+              value={sisterImage}
+              onChange={(e) => setSisterImage(e.target.value)}
+              required
+            />
+            <button type="submit">Add Product</button>
+          </form>
+          <div className="sister-products">
+            {sisterProducts.map((p) => (
+              <div key={p.id} className="product-card">
+                <img src={p.image} alt={p.name} />
+                <h4>{p.name}</h4>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
