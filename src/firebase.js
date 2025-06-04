@@ -8,8 +8,10 @@ const firebaseConfig = {
   projectId: "butterfly-flower-store",
   storageBucket: "butterfly-flower-store.appspot.com",
   messagingSenderId: "949088048906",
-  appId: "1:949088048906:web:e5aadf1f518844d6860cf3"
+  appId: "1:949088048906:web:e5aadf1f518844d6860cf3",
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+const db = getFirestore(app);
+
+export { app, db };
