@@ -40,7 +40,7 @@ export default function App() {
   const [isSignup, setIsSignup] = useState(false);
 
   const adminEmail = "Yousify.talabani2012@gmail.com";
-  const sisterEmail = ""; // <- Add her email here later
+  const sisterEmail = ""; // Add her email here later
 
   const isAdmin = user?.email === adminEmail;
   const isSister = user?.email === sisterEmail;
@@ -122,67 +122,91 @@ export default function App() {
 
   if (!user)
     return (
-      <div style={{ padding: 20 }}>
-        <h1>{isSignup ? t("Sign Up", "تسجيل", "خۆتۆمارکردن") : t("Login", "تسجيل الدخول", "چوونەژوورەوە")}</h1>
+      <div className="min-h-screen bg-gradient-to-b from-pink-100 to-white flex flex-col items-center justify-center text-center">
+        <h1 className="text-3xl font-bold mb-4">
+          {isSignup ? t("Sign Up", "تسجيل", "خۆتۆمارکردن") : t("Login", "تسجيل الدخول", "چوونەژوورەوە")}
+        </h1>
         <input
+          className="border rounded p-2 mb-2"
           type="email"
           placeholder={t("Email", "البريد الالكتروني", "ئیمەیڵ")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <br />
         <input
+          className="border rounded p-2 mb-2"
           type="password"
           placeholder={t("Password", "كلمة السر", "وشەی نهێنی")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <br />
-        <button onClick={isSignup ? signup : login}>
-          {isSignup ? t("Sign Up", "تسجيل", "خۆتۆمارکردن") : t("Login", "دخول", "چوونەژوورەوە")}
-        </button>
-        <button onClick={resetPassword}>{t("Forgot Password?", "نسيت كلمة المرور؟", "وشەی نهێنی لەبیر کردووە؟")}</button>
-        <br />
-        <button onClick={() => setIsSignup(!isSignup)}>
-          {isSignup ? t("Switch to Login", "الذهاب لتسجيل الدخول", "بگۆڕە بۆ چوونەژوورەوە") : t("Create new account", "إنشاء حساب جديد", "دروستکردنی هەژمار")}
-        </button>
-        <br />
-        <button onClick={() => setLang("en")}>English</button>
-        <button onClick={() => setLang("ar")}>العربية</button>
-        <button onClick={() => setLang("ku")}>کوردی</button>
+        <div className="space-x-2">
+          <button className="bg-pink-500 text-white px-4 py-2 rounded" onClick={isSignup ? signup : login}>
+            {isSignup ? t("Sign Up", "تسجيل", "خۆتۆمارکردن") : t("Login", "دخول", "چوونەژوورەوە")}
+          </button>
+          <button className="text-sm text-blue-500 underline" onClick={resetPassword}>
+            {t("Forgot Password?", "نسيت كلمة المرور؟", "وشەی نهێنی لەبیر کردووە؟")}
+          </button>
+          <button className="text-sm text-gray-600 underline" onClick={() => setIsSignup(!isSignup)}>
+            {isSignup ? t("Switch to Login", "الذهاب لتسجيل الدخول", "بگۆڕە بۆ چوونەژوورەوە") : t("Create new account", "إنشاء حساب جديد", "دروستکردنی هەژمار")}
+          </button>
+        </div>
+        <div className="mt-4 space-x-2">
+          <button onClick={() => setLang("en")}>English</button>
+          <button onClick={() => setLang("ar")}>العربية</button>
+          <button onClick={() => setLang("ku")}>کوردی</button>
+        </div>
       </div>
     );
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>{t("Welcome", "أهلاً", "بەخێربێیت")}, {user.email}</h1>
-      <button onClick={logout}>{t("Logout", "تسجيل الخروج", "دەرچوون")}</button>
+    <div className="min-h-screen bg-white p-6">
+      <header className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">🦋 Butterfly & Flower Store</h1>
+        <div className="space-x-4">
+          <span>{user.email}</span>
+          <button className="bg-red-400 text-white px-3 py-1 rounded" onClick={logout}>
+            {t("Logout", "تسجيل الخروج", "دەرچوون")}
+          </button>
+        </div>
+      </header>
 
       {(isAdmin || isSister) && (
-        <button onClick={addProduct}>{t("Add Product", "أضف منتج", "زیادکردنی بەرهەم")}</button>
+        <div className="mb-4">
+          <button className="bg-green-500 text-white px-4 py-2 rounded" onClick={addProduct}>
+            {t("Add Product", "أضف منتج", "زیادکردنی بەرهەم")}
+          </button>
+        </div>
       )}
 
-      <h2>{t("Products", "المنتجات", "کەلوپەل")}</h2>
-      <ul>
+      <h2 className="text-xl font-semibold mb-2">{t("Products", "المنتجات", "کەلوپەل")}</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {products.map((p) => (
-          <li key={p.id}>
-            {p.name} - {p.price}
-            <button onClick={() => addToCart(p)}>{t("Add", "أضف", "زێدەبکە")}</button>
+          <div key={p.id} className="border p-4 rounded shadow">
+            <h3 className="text-lg font-medium">{p.name}</h3>
+            <p className="mb-2">{p.price}</p>
+            <button className="bg-blue-500 text-white px-2 py-1 rounded mr-2" onClick={() => addToCart(p)}>
+              {t("Add", "أضف", "زێدەبکە")}
+            </button>
             {(isAdmin || isSister) && (
-              <button onClick={() => deleteProduct(p.id)}>{t("Delete", "حذف", "سڕینەوە")}</button>
+              <button className="bg-red-500 text-white px-2 py-1 rounded" onClick={() => deleteProduct(p.id)}>
+                {t("Delete", "حذف", "سڕینەوە")}
+              </button>
             )}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
 
-      <h2>{t("Cart", "السلة", "سەبەتە")}</h2>
-      <ul>
+      <h2 className="text-xl font-semibold mt-8 mb-2">{t("Cart", "السلة", "سەبەتە")}</h2>
+      <ul className="list-disc ml-5">
         {cart.map((p, i) => (
           <li key={i}>{p.name} - {p.price}</li>
         ))}
       </ul>
 
-      <button onClick={checkout}>{t("Checkout", "ادفع", "پارەدان")}</button>
+      <button className="mt-4 bg-purple-500 text-white px-4 py-2 rounded" onClick={checkout}>
+        {t("Checkout", "ادفع", "پارەدان")}
+      </button>
     </div>
   );
 }
