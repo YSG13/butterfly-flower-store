@@ -40,10 +40,7 @@ export default function App() {
   const [isSignup, setIsSignup] = useState(false);
 
   const adminEmail = "Yousify.talabani2012@gmail.com";
-  const sisterEmail = ""; // Add her email here later
-
-  const isAdmin = user?.email === adminEmail;
-  const isSister = user?.email === sisterEmail;
+  const addOnlyEmail = ""; // Add your sister's email here later
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -59,7 +56,9 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const addToCart = (item) => setCart([...cart, item]);
+  const addToCart = (item) => {
+    setCart([...cart, item]);
+  };
 
   const login = async () => {
     try {
@@ -78,13 +77,9 @@ export default function App() {
   };
 
   const resetPassword = async () => {
-    if (!email) return alert("Enter your email first.");
-    try {
-      await sendPasswordResetEmail(auth, email);
-      alert("Password reset email sent.");
-    } catch (error) {
-      alert("Error: " + error.message);
-    }
+    if (!email) return alert("Enter your email first");
+    await sendPasswordResetEmail(auth, email);
+    alert("Reset email sent");
   };
 
   const logout = async () => {
@@ -103,110 +98,112 @@ export default function App() {
     setCart([]);
   };
 
-  const addProduct = async () => {
-    const name = prompt("Product name?");
-    const price = prompt("Product price?");
-    if (name && price) {
-      await addDoc(collection(db, "products"), { name, price });
-      alert("Product added");
-    }
-  };
-
   const deleteProduct = async (id) => {
-    if (!window.confirm("Delete this product?")) return;
     await deleteDoc(doc(db, "products", id));
-    alert("Product deleted");
+    setProducts(products.filter((p) => p.id !== id));
   };
 
   const t = (en, ar, ku) => (lang === "ar" ? ar : lang === "ku" ? ku : en);
 
   if (!user)
     return (
-      <div className="min-h-screen bg-gradient-to-b from-pink-100 to-white flex flex-col items-center justify-center text-center">
-        <h1 className="text-3xl font-bold mb-4">
-          {isSignup ? t("Sign Up", "تسجيل", "خۆتۆمارکردن") : t("Login", "تسجيل الدخول", "چوونەژوورەوە")}
-        </h1>
+      <div style={{ padding: 20, maxWidth: 400, margin: "0 auto" }}>
+        <h1>Wings and Petals 🦋🌸</h1>
+        <h2>{t("Login", "تسجيل الدخول", "چوونەژوورەوە")}</h2>
         <input
-          className="border rounded p-2 mb-2"
           type="email"
           placeholder={t("Email", "البريد الالكتروني", "ئیمەیڵ")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-        />
+        /><br />
         <input
-          className="border rounded p-2 mb-2"
           type="password"
           placeholder={t("Password", "كلمة السر", "وشەی نهێنی")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-        />
-        <div className="space-x-2">
-          <button className="bg-pink-500 text-white px-4 py-2 rounded" onClick={isSignup ? signup : login}>
-            {isSignup ? t("Sign Up", "تسجيل", "خۆتۆمارکردن") : t("Login", "دخول", "چوونەژوورەوە")}
-          </button>
-          <button className="text-sm text-blue-500 underline" onClick={resetPassword}>
-            {t("Forgot Password?", "نسيت كلمة المرور؟", "وشەی نهێنی لەبیر کردووە؟")}
-          </button>
-          <button className="text-sm text-gray-600 underline" onClick={() => setIsSignup(!isSignup)}>
-            {isSignup ? t("Switch to Login", "الذهاب لتسجيل الدخول", "بگۆڕە بۆ چوونەژوورەوە") : t("Create new account", "إنشاء حساب جديد", "دروستکردنی هەژمار")}
-          </button>
-        </div>
-        <div className="mt-4 space-x-2">
-          <button onClick={() => setLang("en")}>English</button>
-          <button onClick={() => setLang("ar")}>العربية</button>
-          <button onClick={() => setLang("ku")}>کوردی</button>
-        </div>
+        /><br />
+        <button onClick={isSignup ? signup : login}>
+          {isSignup ? t("Sign Up", "إنشاء حساب", "خۆتۆمارکردن") : t("Login", "دخول", "چوونەژوورەوە")}
+        </button>
+        <p style={{ cursor: "pointer", color: "blue" }} onClick={() => setIsSignup(!isSignup)}>
+          {isSignup ? t("Already have an account? Login", "لديك حساب؟ سجل الدخول", "هەژمارت هەیە؟ بچۆ ژوورەوە") : t("New? Sign up", "جديد؟ أنشئ حساب", "تازەیت؟ خۆتۆمار بکە")}
+        </p>
+        <p style={{ cursor: "pointer", color: "green" }} onClick={resetPassword}>
+          {t("Forgot Password?", "نسيت كلمة السر؟", "وشەی نهێنیت لەبیرچووە؟")}
+        </p>
+        <br />
+        <button onClick={() => setLang("en")}>English</button>
+        <button onClick={() => setLang("ar")}>العربية</button>
+        <button onClick={() => setLang("ku")}>کوردی</button>
       </div>
     );
 
+  const isAdmin = user.email === adminEmail;
+  const canAddOnly = user.email === addOnlyEmail;
+
   return (
-    <div className="min-h-screen bg-white p-6">
-      <header className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">🦋 Butterfly & Flower Store</h1>
-        <div className="space-x-4">
-          <span>{user.email}</span>
-          <button className="bg-red-400 text-white px-3 py-1 rounded" onClick={logout}>
-            {t("Logout", "تسجيل الخروج", "دەرچوون")}
-          </button>
-        </div>
-      </header>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1 style={{ textAlign: "center" }}>🌸 Wings and Petals 🦋</h1>
+      <p style={{ textAlign: "center" }}>{t("Welcome", "أهلاً", "بەخێربێیت")}, {user.email}</p>
+      <button onClick={logout}>{t("Logout", "تسجيل الخروج", "دەرچوون")}</button>
 
-      {(isAdmin || isSister) && (
-        <div className="mb-4">
-          <button className="bg-green-500 text-white px-4 py-2 rounded" onClick={addProduct}>
-            {t("Add Product", "أضف منتج", "زیادکردنی بەرهەم")}
-          </button>
-        </div>
-      )}
-
-      <h2 className="text-xl font-semibold mb-2">{t("Products", "المنتجات", "کەلوپەل")}</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <h2>{t("Products", "المنتجات", "کەلوپەل")}</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
         {products.map((p) => (
-          <div key={p.id} className="border p-4 rounded shadow">
-            <h3 className="text-lg font-medium">{p.name}</h3>
-            <p className="mb-2">{p.price}</p>
-            <button className="bg-blue-500 text-white px-2 py-1 rounded mr-2" onClick={() => addToCart(p)}>
-              {t("Add", "أضف", "زێدەبکە")}
-            </button>
-            {(isAdmin || isSister) && (
-              <button className="bg-red-500 text-white px-2 py-1 rounded" onClick={() => deleteProduct(p.id)}>
-                {t("Delete", "حذف", "سڕینەوە")}
-              </button>
+          <div key={p.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10 }}>
+            <h3>{p.name}</h3>
+            <p>{p.description}</p>
+            <p>{p.price}</p>
+            <button onClick={() => addToCart(p)}>{t("Add to Cart", "أضف إلى السلة", "زێدە بکە")}</button>
+            {(isAdmin || canAddOnly) && (
+              <button onClick={() => deleteProduct(p.id)} style={{ marginLeft: 10, color: "red" }}>X</button>
             )}
           </div>
         ))}
       </div>
 
-      <h2 className="text-xl font-semibold mt-8 mb-2">{t("Cart", "السلة", "سەبەتە")}</h2>
-      <ul className="list-disc ml-5">
+      <h2>{t("Cart", "السلة", "سەبەتە")}</h2>
+      <ul>
         {cart.map((p, i) => (
           <li key={i}>{p.name} - {p.price}</li>
         ))}
       </ul>
 
-      <button className="mt-4 bg-purple-500 text-white px-4 py-2 rounded" onClick={checkout}>
-        {t("Checkout", "ادفع", "پارەدان")}
-      </button>
+      <button onClick={checkout}>{t("Checkout", "ادفع", "پارەدان")}</button>
+
+      {(isAdmin || canAddOnly) && (
+        <div style={{ marginTop: 30 }}>
+          <h3>{t("Add New Product", "أضف منتج جديد", "کەلوپەلی نوێ زێدە بکە")}</h3>
+          <AddProductForm db={db} setProducts={setProducts} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AddProductForm({ db, setProducts }) {
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+
+  const addProduct = async () => {
+    const docRef = await addDoc(collection(db, "products"), {
+      name,
+      price,
+      description,
+    });
+    setProducts((prev) => [...prev, { id: docRef.id, name, price, description }]);
+    setName("");
+    setPrice("");
+    setDescription("");
+  };
+
+  return (
+    <div>
+      <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} /><br />
+      <input placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} /><br />
+      <input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} /><br />
+      <button onClick={addProduct}>Add Product</button>
     </div>
   );
 }
