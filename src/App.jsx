@@ -12,12 +12,6 @@ import {
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBT-reYLtGQycKsHl-xl0KQ9aGNGjJlaDU",
@@ -31,7 +25,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-const storage = getStorage(app);
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -40,8 +33,7 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [lang, setLang] = useState("en");
-  const [name, setName] = useState("");
-  const [image, setImage] = useState(null);
+  const [newProduct, setNewProduct] = useState({ name: "", price: "", type: "" });
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -85,20 +77,11 @@ export default function App() {
     setCart([]);
   };
 
-  const addSisterProduct = async () => {
-    if (!name || !image) return alert("Please add name and image");
-    const imageRef = ref(storage, `sisters_collection/${image.name}`);
-    await uploadBytes(imageRef, image);
-    const url = await getDownloadURL(imageRef);
-    await addDoc(collection(db, "sisters_collection"), {
-      name,
-      imageUrl: url,
-      addedBy: auth.currentUser?.email || "unknown",
-      createdAt: Date.now(),
-    });
-    alert("Sister's product added!");
-    setName("");
-    setImage(null);
+  const handleAddProduct = async () => {
+    if (!newProduct.name || !newProduct.price || !newProduct.type) return;
+    await addDoc(collection(db, "products"), newProduct);
+    setNewProduct({ name: "", price: "", type: "" });
+    alert("Product added.");
   };
 
   const t = (en, ar, ku) => (lang === "ar" ? ar : lang === "ku" ? ku : en);
@@ -129,50 +112,73 @@ export default function App() {
       </div>
     );
 
+  const isSister = user.email === "yaro.talabani@gmail.com";
+
   return (
-    <div style={{ padding: 20 }}>
-      <h1>{t("Welcome", "أهلاً", "بەخێربێیت")}, {user.email}</h1>
-      <button onClick={logout}>{t("Logout", "تسجيل الخروج", "دەرچوون")}</button>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1 style={{ fontSize: 32 }}>Wings and Petals</h1>
+      <p>Welcome, {user.email}</p>
+      <button onClick={logout}>Logout</button>
 
-      <h2>{t("Products", "المنتجات", "کەلوپەل")}</h2>
-      <ul>
-        {products.map((p) => (
-          <li key={p.id}>
-            {p.name} - {p.price}
-            <button onClick={() => addToCart(p)}>{t("Add", "أضف", "زێدەبکە")}</button>
-          </li>
+      {isSister && (
+        <div style={{ marginTop: 40, background: "#ffe0f0", padding: 20, borderRadius: 10 }}>
+          <h2>Sister's Collection - Add Product</h2>
+          <input
+            type="text"
+            placeholder="Name"
+            value={newProduct.name}
+            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+          />
+          <input
+            type="number"
+            placeholder="Price"
+            value={newProduct.price}
+            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+          />
+          <select
+            value={newProduct.type}
+            onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value })}
+          >
+            <option value="">Select Type</option>
+            <option value="resin">With Resin</option>
+            <option value="no-resin">Without Resin</option>
+          </select>
+          <button onClick={handleAddProduct}>Add Product</button>
+        </div>
+      )}
+
+      <h2>Products</h2>
+
+      <div style={{ marginBottom: 30 }}>
+        <h3>With Resin</h3>
+        {products.filter(p => p.type === "resin").map((p) => (
+          <div key={p.id} style={{ background: "#f3f3f3", margin: 10, padding: 10, borderRadius: 10 }}>
+            <strong>{p.name}</strong><br />
+            Price: {p.price}<br />
+            Type: {p.type}<br />
+            <button onClick={() => addToCart(p)}>Add to Cart</button>
+          </div>
         ))}
-      </ul>
 
-      <h2>{t("Cart", "السلة", "سەبەتە")}</h2>
+        <h3>Without Resin</h3>
+        {products.filter(p => p.type === "no-resin").map((p) => (
+          <div key={p.id} style={{ background: "#e6f9ff", margin: 10, padding: 10, borderRadius: 10 }}>
+            <strong>{p.name}</strong><br />
+            Price: {p.price}<br />
+            Type: {p.type}<br />
+            <button onClick={() => addToCart(p)}>Add to Cart</button>
+          </div>
+        ))}
+      </div>
+
+      <h2>Your Cart</h2>
       <ul>
         {cart.map((p, i) => (
           <li key={i}>{p.name} - {p.price}</li>
         ))}
       </ul>
 
-      <button onClick={checkout}>{t("Checkout", "ادفع", "پارەدان")}</button>
-
-      {user.email === "yaro.talabani@gmail.com" && (
-        <div>
-          <h2>Sister's Collection - Add Product</h2>
-          <input
-            type="text"
-            placeholder="Product Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <br />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImage(e.target.files[0])}
-          />
-          <br />
-          <button onClick={addSisterProduct}>Add Product</button>
-        </div>
-      )}
+      <button onClick={checkout}>Checkout</button>
     </div>
   );
 }
-
