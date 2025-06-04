@@ -40,10 +40,8 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [lang, setLang] = useState("en");
-
-  const [sisterName, setSisterName] = useState("");
-  const [sisterImage, setSisterImage] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [name, setName] = useState("");
+  const [image, setImage] = useState(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -87,25 +85,20 @@ export default function App() {
     setCart([]);
   };
 
-  const handleSisterAdd = async () => {
-    if (!sisterImage || !sisterName) return alert("Enter name and choose an image");
-    setUploading(true);
-
-    const imageRef = ref(storage, `sisters_collection/${sisterImage.name}`);
-    await uploadBytes(imageRef, sisterImage);
-    const imageUrl = await getDownloadURL(imageRef);
-
+  const addSisterProduct = async () => {
+    if (!name || !image) return alert("Please add name and image");
+    const imageRef = ref(storage, `sisters_collection/${image.name}`);
+    await uploadBytes(imageRef, image);
+    const url = await getDownloadURL(imageRef);
     await addDoc(collection(db, "sisters_collection"), {
-      name: sisterName,
-      imageUrl,
+      name,
+      imageUrl: url,
       addedBy: auth.currentUser?.email || "unknown",
-      timestamp: Date.now(),
+      createdAt: Date.now(),
     });
-
-    setSisterName("");
-    setSisterImage(null);
-    setUploading(false);
-    alert("Added to Sister's Collection!");
+    alert("Sister's product added!");
+    setName("");
+    setImage(null);
   };
 
   const t = (en, ar, ku) => (lang === "ar" ? ar : lang === "ku" ? ku : en);
@@ -160,23 +153,26 @@ export default function App() {
 
       <button onClick={checkout}>{t("Checkout", "ادفع", "پارەدان")}</button>
 
-      {user.email === "SISTER_EMAIL_HERE" && (
+      {user.email === "yaro.talabani@gmail.com" && (
         <div>
           <h2>Sister's Collection - Add Product</h2>
           <input
             type="text"
             placeholder="Product Name"
-            value={sisterName}
-            onChange={(e) => setSisterName(e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
           <br />
-          <input type="file" onChange={(e) => setSisterImage(e.target.files[0])} />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files[0])}
+          />
           <br />
-          <button onClick={handleSisterAdd} disabled={uploading}>
-            {uploading ? "Uploading..." : "Add Product"}
-          </button>
+          <button onClick={addSisterProduct}>Add Product</button>
         </div>
       )}
     </div>
   );
 }
+
