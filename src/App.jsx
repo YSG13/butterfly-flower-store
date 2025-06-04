@@ -7,33 +7,24 @@ export default function App() {
 
   useEffect(() => {
     async function fetchData() {
-      const snapshot = await getDocs(collection(db, "products"));
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setProducts(items);
+      const querySnapshot = await getDocs(collection(db, "products"));
+      const data = querySnapshot.docs.map(doc => doc.data());
+      setProducts(data);
     }
 
     fetchData();
   }, []);
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 40 }}>
       <h1>🦋 Butterfly & Flower Store</h1>
-
-      {products.length === 0 ? (
-        <p>Loading products...</p>
-      ) : (
-        <ul>
-          {products.map(p => (
-            <li key={p.id} style={{ marginBottom: 10 }}>
-              <strong>{p.name}</strong> - ${p.price}<br />
-              <em>{p.description}</em>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul>
+        {products.map((item, index) => (
+          <li key={index}>
+            <strong>{item.name}</strong> – {item.price} IQD
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
