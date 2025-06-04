@@ -6,12 +6,12 @@ import {
   getDocs,
   addDoc,
   deleteDoc,
-  doc,
+  doc
 } from "firebase/firestore";
 import {
   getAuth,
-  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   sendPasswordResetEmail,
   onAuthStateChanged,
   signOut,
@@ -30,6 +30,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+const adminEmail = "Yousify.talabani2012@gmail.com";
+const productContributorEmails = [adminEmail]; // add your sister's email when ready
+
 export default function App() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
@@ -39,8 +42,7 @@ export default function App() {
   const [lang, setLang] = useState("en");
   const [isSignup, setIsSignup] = useState(false);
 
-  const adminEmail = "Yousify.talabani2012@gmail.com";
-  const addOnlyEmail = ""; // Add your sister's email here later
+  const t = (en, ar, ku) => (lang === "ar" ? ar : lang === "ku" ? ku : en);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -56,9 +58,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const addToCart = (item) => {
-    setCart([...cart, item]);
-  };
+  const addToCart = (item) => setCart([...cart, item]);
 
   const login = async () => {
     try {
@@ -77,9 +77,12 @@ export default function App() {
   };
 
   const resetPassword = async () => {
-    if (!email) return alert("Enter your email first");
-    await sendPasswordResetEmail(auth, email);
-    alert("Reset email sent");
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset email sent!");
+    } catch (error) {
+      alert("Reset failed: " + error.message);
+    }
   };
 
   const logout = async () => {
@@ -98,112 +101,86 @@ export default function App() {
     setCart([]);
   };
 
-  const deleteProduct = async (id) => {
-    await deleteDoc(doc(db, "products", id));
-    setProducts(products.filter((p) => p.id !== id));
+  const addProduct = async () => {
+    const name = prompt("Product name:");
+    const price = prompt("Price:");
+    const type = prompt("Type (Resin/Regular):");
+    if (name && price && type) {
+      await addDoc(collection(db, "products"), { name, price, type });
+      alert("Product added!");
+      const snapshot = await getDocs(collection(db, "products"));
+      setProducts(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    }
   };
 
-  const t = (en, ar, ku) => (lang === "ar" ? ar : lang === "ku" ? ku : en);
+  const deleteProduct = async (id) => {
+    await deleteDoc(doc(db, "products", id));
+    setProducts(products.filter(p => p.id !== id));
+  };
+
+  const canDelete = user && user.email === adminEmail;
+  const canAdd = user && productContributorEmails.includes(user.email);
 
   if (!user)
     return (
-      <div style={{ padding: 20, maxWidth: 400, margin: "0 auto" }}>
-        <h1>Wings and Petals 🦋🌸</h1>
-        <h2>{t("Login", "تسجيل الدخول", "چوونەژوورەوە")}</h2>
+      <div style={{ padding: 40, fontFamily: 'sans-serif' }}>
+        <h1>{t("Login", "تسجيل الدخول", "چوونەژوورەوە")}</h1>
         <input
           type="email"
           placeholder={t("Email", "البريد الالكتروني", "ئیمەیڵ")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-        /><br />
+        />
+        <br />
         <input
           type="password"
           placeholder={t("Password", "كلمة السر", "وشەی نهێنی")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-        /><br />
-        <button onClick={isSignup ? signup : login}>
-          {isSignup ? t("Sign Up", "إنشاء حساب", "خۆتۆمارکردن") : t("Login", "دخول", "چوونەژوورەوە")}
-        </button>
-        <p style={{ cursor: "pointer", color: "blue" }} onClick={() => setIsSignup(!isSignup)}>
-          {isSignup ? t("Already have an account? Login", "لديك حساب؟ سجل الدخول", "هەژمارت هەیە؟ بچۆ ژوورەوە") : t("New? Sign up", "جديد؟ أنشئ حساب", "تازەیت؟ خۆتۆمار بکە")}
-        </p>
-        <p style={{ cursor: "pointer", color: "green" }} onClick={resetPassword}>
-          {t("Forgot Password?", "نسيت كلمة السر؟", "وشەی نهێنیت لەبیرچووە؟")}
-        </p>
+        />
         <br />
+        <button onClick={isSignup ? signup : login}>{isSignup ? t("Sign Up", "اشتراك", "خۆتۆمارکردن") : t("Login", "دخول", "چوونەژوورەوە")}</button>
+        <button onClick={resetPassword}>{t("Forgot Password?", "هل نسيت كلمة المرور؟", "وشەی نهێنی لەبیرچوە؟")}</button>
+        <br />
+        <button onClick={() => setIsSignup(!isSignup)}>
+          {isSignup ? t("Have an account? Login", "عندك حساب؟ سجل دخول", "هەژمارت هەیە؟ بچۆ ژوورەوە") : t("No account? Sign up", "ما عندك حساب؟ اشترك", "هەژمار نیە؟ خۆتۆماربکە")}
+        </button>
+        <br /><br />
         <button onClick={() => setLang("en")}>English</button>
         <button onClick={() => setLang("ar")}>العربية</button>
         <button onClick={() => setLang("ku")}>کوردی</button>
       </div>
     );
 
-  const isAdmin = user.email === adminEmail;
-  const canAddOnly = user.email === addOnlyEmail;
-
   return (
-    <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1 style={{ textAlign: "center" }}>🌸 Wings and Petals 🦋</h1>
-      <p style={{ textAlign: "center" }}>{t("Welcome", "أهلاً", "بەخێربێیت")}, {user.email}</p>
+    <div style={{ padding: 40, fontFamily: 'sans-serif' }}>
+      <h1 style={{ fontSize: 32 }}>{t("Wings and Petals", "أجنحة وبتلات", "باڵ و گۆڵ")}</h1>
+      <p>{t("Welcome", "أهلاً", "بەخێربێیت")}, {user.email}</p>
       <button onClick={logout}>{t("Logout", "تسجيل الخروج", "دەرچوون")}</button>
 
+      {canAdd && <button onClick={addProduct} style={{ marginLeft: 10 }}>{t("Add Product", "أضف منتج", "زێدەکردنی بەرهەم")}</button>}
+
       <h2>{t("Products", "المنتجات", "کەلوپەل")}</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
         {products.map((p) => (
-          <div key={p.id} style={{ border: "1px solid #ddd", padding: 10, borderRadius: 10 }}>
+          <div key={p.id} style={{ padding: 20, boxShadow: "0 0 10px rgba(0,0,0,0.1)", borderRadius: 10 }}>
             <h3>{p.name}</h3>
-            <p>{p.description}</p>
-            <p>{p.price}</p>
-            <button onClick={() => addToCart(p)}>{t("Add to Cart", "أضف إلى السلة", "زێدە بکە")}</button>
-            {(isAdmin || canAddOnly) && (
-              <button onClick={() => deleteProduct(p.id)} style={{ marginLeft: 10, color: "red" }}>X</button>
-            )}
+            <p>{t("Price", "السعر", "نرخ")}: {p.price}</p>
+            <p>{t("Type", "النوع", "جۆر")}: {p.type}</p>
+            <button onClick={() => addToCart(p)}>{t("Add to Cart", "أضف إلى السلة", "زیادکردن بۆ سەبەتە")}</button>
+            {canDelete && <button onClick={() => deleteProduct(p.id)} style={{ marginLeft: 10 }}>{t("Delete", "حذف", "سڕینەوە")}</button>}
           </div>
         ))}
       </div>
 
-      <h2>{t("Cart", "السلة", "سەبەتە")}</h2>
+      <h2>{t("Your Cart", "السلة", "سەبەتە")}</h2>
       <ul>
         {cart.map((p, i) => (
           <li key={i}>{p.name} - {p.price}</li>
         ))}
       </ul>
 
-      <button onClick={checkout}>{t("Checkout", "ادفع", "پارەدان")}</button>
-
-      {(isAdmin || canAddOnly) && (
-        <div style={{ marginTop: 30 }}>
-          <h3>{t("Add New Product", "أضف منتج جديد", "کەلوپەلی نوێ زێدە بکە")}</h3>
-          <AddProductForm db={db} setProducts={setProducts} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AddProductForm({ db, setProducts }) {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-
-  const addProduct = async () => {
-    const docRef = await addDoc(collection(db, "products"), {
-      name,
-      price,
-      description,
-    });
-    setProducts((prev) => [...prev, { id: docRef.id, name, price, description }]);
-    setName("");
-    setPrice("");
-    setDescription("");
-  };
-
-  return (
-    <div>
-      <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} /><br />
-      <input placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} /><br />
-      <input placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} /><br />
-      <button onClick={addProduct}>Add Product</button>
+      <button onClick={checkout} style={{ marginTop: 10 }}>{t("Checkout", "ادفع", "پارەدان")}</button>
     </div>
   );
 }
